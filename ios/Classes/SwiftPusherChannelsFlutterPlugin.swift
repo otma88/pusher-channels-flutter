@@ -98,30 +98,32 @@ public class SwiftPusherChannelsFlutterPlugin: NSObject, FlutterPlugin, PusherDe
     result(nil)
   }
 
- public func fetchAuthValue(socketID: String, channelName: String, completionHandler: @escaping (PusherAuth?) -> Void) {
-   DispatchQueue.main.async {
-     self.methodChannel.invokeMethod("onAuthorizer", arguments: [
-       "socketId": socketID,
-       "channelName": channelName,
-     ]) { authData in
-     if let authData = authData as? [String: Any], let auth = authData["auth"] as? String {
-       let channelData = authData["channel_data"] as? String
-       let sharedSecret = authData["shared_secret"] as? String
+public func fetchAuthValue(socketID: String, channelName: String, completionHandler: @escaping (PusherAuth?) -> Void) {
+  DispatchQueue.main.async {
+    print("[PusherPlugin] Invoking onAuthorizer for \(channelName) with socketId \(socketID)")
+    self.methodChannel.invokeMethod("onAuthorizer", arguments: [
+      "socketId": socketID,
+      "channelName": channelName,
+    ]) { authData in
+      print("[PusherPlugin] Received authData from Dart: \(String(describing: authData))")
+      if let authData = authData as? [String: Any], let auth = authData["auth"] as? String {
+        let channelData = authData["channel_data"] as? String
+        let sharedSecret = authData["shared_secret"] as? String
 
-       let pusherAuth = PusherAuth(
-         auth: auth,
-         channelData: channelData,
-         sharedSecret: sharedSecret
-       )
-       completionHandler(pusherAuth)
-     } else {
-       print("[PusherPlugin] Invalid authData received from Dart: \(String(describing: authData))")
-       completionHandler(nil)
-     }
+        let pusherAuth = PusherAuth(
+          auth: auth,
+          channelData: channelData,
+          sharedSecret: sharedSecret
+        )
+        completionHandler(pusherAuth)
+      } else {
+        print("[PusherPlugin] Invalid authData format")
+        completionHandler(nil)
+      }
+    }
+  }
+}
 
-     }
-   }
- }
 
 
 public func changedConnectionState(from old: ConnectionState, to new: ConnectionState) {
