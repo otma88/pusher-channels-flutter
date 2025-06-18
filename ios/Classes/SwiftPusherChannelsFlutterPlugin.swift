@@ -102,7 +102,7 @@ public func fetchAuthValue(socketID: String, channelName: String, completionHand
     print("[PusherPlugin] Custom auth request for socket: \(socketID), channel: \(channelName)")
 
     // Replace with your actual endpoint
-    guard let url = URL(string: "https://apishopping-daddy-main-eouxm5.laravel.cloud/broadcasting/auth") else {
+    guard let url = URL(string: "https://apishopping-daddy-main-eouxm5.laravel.cloud/api/broadcasting/auth") else {
         print("[PusherPlugin] Invalid auth URL")
         completionHandler(nil)
         return
@@ -117,7 +117,7 @@ public func fetchAuthValue(socketID: String, channelName: String, completionHand
     request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
     // Add bearer token (from secure store or however your app authenticates)
-    if let token = UserDefaults.standard.string(forKey: "authToken") {
+    if let token = UserDefaults.standard.string(forKey: "token") {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     }
 
