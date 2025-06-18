@@ -99,30 +99,63 @@ public class SwiftPusherChannelsFlutterPlugin: NSObject, FlutterPlugin, PusherDe
   }
 
 public func fetchAuthValue(socketID: String, channelName: String, completionHandler: @escaping (PusherAuth?) -> Void) {
-  DispatchQueue.main.async {
-    print("[PusherPlugin] Invoking onAuthorizer for \(channelName) with socketId \(socketID)")
-    self.methodChannel.invokeMethod("onAuthorizer", arguments: [
-      "socketId": socketID,
-      "channelName": channelName,
-    ]) { authData in
-      print("[PusherPlugin] Received authData from Dart: \(String(describing: authData))")
-      if let authData = authData as? [String: Any], let auth = authData["auth"] as? String {
-        let channelData = authData["channel_data"] as? String
-        let sharedSecret = authData["shared_secret"] as? String
+    print("[PusherPlugin] Custom auth request for socket: \(socketID), channel: \(channelName)")
 
-        let pusherAuth = PusherAuth(
-          auth: auth,
-          channelData: channelData,
-          sharedSecret: sharedSecret
-        )
-        completionHandler(pusherAuth)
-      } else {
-        print("[PusherPlugin] Invalid authData format")
+    // Replace with your actual endpoint
+    guard let url = URL(string: "https://apishopping-daddy-main-eouxm5.laravel.cloud/broadcasting/auth") else {
+        print("[PusherPlugin] Invalid auth URL")
         completionHandler(nil)
-      }
+        return
     }
-  }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+
+    // Set form-encoded body like Laravel expects
+    let bodyString = "socket_id=\(socketID)&channel_name=\(channelName)"
+    request.httpBody = bodyString.data(using: .utf8)
+    request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+
+    // Add bearer token (from secure store or however your app authenticates)
+    if let token = UserDefaults.standard.string(forKey: "authToken") {
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    }
+
+    // Perform the request
+    let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        guard error == nil else {
+            print("[PusherPlugin] Auth request failed:", error!.localizedDescription)
+            completionHandler(nil)
+            return
+        }
+
+        guard let data = data else {
+            print("[PusherPlugin] No auth response data")
+            completionHandler(nil)
+            return
+        }
+
+        do {
+            if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+               let auth = json["auth"] as? String {
+                let channelData = json["channel_data"] as? String
+                let sharedSecret = json["shared_secret"] as? String
+
+                print("[PusherPlugin] Auth success: \(auth)")
+                completionHandler(PusherAuth(auth: auth, channelData: channelData, sharedSecret: sharedSecret))
+            } else {
+                print("[PusherPlugin] Invalid auth JSON")
+                completionHandler(nil)
+            }
+        } catch {
+            print("[PusherPlugin] JSON decode error:", error.localizedDescription)
+            completionHandler(nil)
+        }
+    }
+
+    task.resume()
 }
+
 
 
 
