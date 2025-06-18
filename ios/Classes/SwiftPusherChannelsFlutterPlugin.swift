@@ -104,16 +104,21 @@ public class SwiftPusherChannelsFlutterPlugin: NSObject, FlutterPlugin, PusherDe
        "socketId": socketID,
        "channelName": channelName,
      ]) { authData in
-       if let authDataCast = authData as? [String: String], let auth = authDataCast["auth"] {
-         let pusherAuth = PusherAuth(
-           auth: auth,
-           channelData: authDataCast["channel_data"],
-           sharedSecret: authDataCast["shared_secret"]
-         )
-         completionHandler(pusherAuth)
-       } else {
-         completionHandler(nil)
-       }
+     if let authData = authData as? [String: Any], let auth = authData["auth"] as? String {
+       let channelData = authData["channel_data"] as? String
+       let sharedSecret = authData["shared_secret"] as? String
+
+       let pusherAuth = PusherAuth(
+         auth: auth,
+         channelData: channelData,
+         sharedSecret: sharedSecret
+       )
+       completionHandler(pusherAuth)
+     } else {
+       print("[PusherPlugin] Invalid authData received from Dart: \(String(describing: authData))")
+       completionHandler(nil)
+     }
+
      }
    }
  }
