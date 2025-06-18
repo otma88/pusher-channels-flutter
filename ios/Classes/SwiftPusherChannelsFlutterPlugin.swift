@@ -98,24 +98,26 @@ public class SwiftPusherChannelsFlutterPlugin: NSObject, FlutterPlugin, PusherDe
     result(nil)
   }
 
-  public func fetchAuthValue(socketID: String, channelName: String, completionHandler: @escaping (PusherAuth?) -> Void) {
-    methodChannel!.invokeMethod("onAuthorizer", arguments: [
-      "socketId": socketID,
-      "channelName": channelName,
-    ]) { authData in
-      if authData != nil {
-        let authDataCast = authData as! [String: String]
-        completionHandler(
-          PusherAuth(
-            auth: authDataCast["auth"]!,
-            channelData: authDataCast["channel_data"],
-            sharedSecret: authDataCast["shared_secret"]
-          ))
-      } else {
-        completionHandler(nil)
-      }
-    }
-  }
+ public func fetchAuthValue(socketID: String, channelName: String, completionHandler: @escaping (PusherAuth?) -> Void) {
+   DispatchQueue.main.async {
+     self.methodChannel.invokeMethod("onAuthorizer", arguments: [
+       "socketId": socketID,
+       "channelName": channelName,
+     ]) { authData in
+       if let authDataCast = authData as? [String: String], let auth = authDataCast["auth"] {
+         let pusherAuth = PusherAuth(
+           auth: auth,
+           channelData: authDataCast["channel_data"],
+           sharedSecret: authDataCast["shared_secret"]
+         )
+         completionHandler(pusherAuth)
+       } else {
+         completionHandler(nil)
+       }
+     }
+   }
+ }
+
 
 public func changedConnectionState(from old: ConnectionState, to new: ConnectionState) {
   DispatchQueue.main.async {
